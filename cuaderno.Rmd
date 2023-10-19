@@ -1,0 +1,196 @@
+---
+title: "Trabajo 2 [Estadistica3]"
+output: html_notebook
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# Consideraciones previas
+
+## Librerias
+
+### Instalarlas
+```{r}
+# Visuals
+install.packages("ggplot2")
+# Stats
+install.packages("stats")
+# Periodograma
+install.packages("TSA")
+# forecast
+install.packages("forecast")
+# dplyr
+install.packages("dplyr")
+```
+
+### LLamarlas
+
+```{r}
+# Visuals
+library(ggplot2)
+# Stats
+library(stats)
+# Periodograma
+library(TSA)
+# forecast
+library(forecast)
+# dplyr
+library(dplyr)
+```
+
+### Funciones de usuario para el trabajo
+```{r}
+source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-Descomp.Loess.R") # nolint: line_length_linter
+source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-Filtro.lineal.R") # nolint: line_length_linter
+source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-Loess.Optimo.R") # nolint: line_length_linter
+source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-SelectModel.R") # nolint: line_length_linter
+source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-SuavizamientoEstacional.R") # nolint: line_length_linter
+source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-estimar.recursiva.R") # nolint: line_length_linter
+source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-regexpo.ErrorARMA.R") # nolint: line_length_linter
+source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-regexponencial.R") # nolint: line_length_linter
+source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funciones-BP.LB.test-pruebaDW1.R") # nolint: line_length_linter
+source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funciones-Criterios.Informacion-Calidad.Intervalos.R") # nolint: line_length_linter
+```
+
+### Borrar datos almacenados en memoria
+```{r}
+rm(list = ls(all = TRUE))
+```
+
+### Cargar datos
+```{r}
+data_dir <- "./data/anex-EMC-SeriesIndiceEmpalmados-vtas nominales lineas mercancia-may2023.csv" # nolint: line_length_linter
+data <- read.table(data_dir, header = TRUE, sep = ";",
+    skip = 10, dec = ",", colClasses = c(rep("NULL", 14), "numeric", rep("NULL", 7))) # nolint: line_length_linter, indentation_linter.
+data
+```
+
+### Componer la serie en su estructura de datos predeterminada
+```{r}
+serie <- ts(data, freq = 12, start = c(2013, 1))
+serie_log <- ts(log(data), freq = 12, start = c(2013, 1))
+```
+
+# Punto 2 Análisis descriptivo de la serie, modelo global asignado y sus resultados
+
+## Punto A
+* Presente y analice en forma breve la gráfica de la serie (y su logaritmo natural si la serie es multiplicativa)
+
+```{r}
+# Graficamos
+par(mfrow = c(1, 2))
+plot(serie, ylab = "PIB Nominal")
+title("Escala Normal")
+
+plot(serie_log, ylab = "PIB Nominal")
+title("Escala Lognormal")
+```
+
+* indicando los patrones observables de tendencia, estacionalidad, varianza, ciclos.
+```{r}
+# Realizando descompose
+descom_serie_log = decompose(serie_log,type = "additive")
+# Graficando la tendencia
+plot(descom.serie_log$trend)
+# Graficando la estacionalidad
+# 1. Graficando boxplot
+boxplot(serie_log ~ cycle(serie_log), main = "Gráfico de boxplots")
+# 2. Graficando la varianza
+x_no_trend <- diff(serie_log)
+plot(x_no_trend, ylab = expression(log(Y[t]) - log(Y[t - 1])))
+abline(h = mean(x_no_trend))
+```
+
+* Grafique y analice además la ACF estimada con la serie (para el caso multiplicativo sólo presente y analice la ACF del logaritmo natural) m = 36
+```{r}
+acf(as.numeric(serie), lag.max = 36, ci.type = "ma",
+    col = 4, ci.col = 2, main = "ACF de la serie")
+acf(as.numeric(log(serie)), lag.max = 36, ci.type = "ma",
+    col = 4, ci.col = 2, main = "ACF de la serie logaritmica")
+```
+
+## Punto B
+
+* Para el modelo de regresión global señalado en la Tabla 1 (En este caso **exponencial polinomial multiplicativa estacional**), reporte la ecuacion teorica con sus supuestos y con la estrategia de validacion cruzada usando la misma longitud de ajuste del trabajo anterior (n = 113)
+ecuacion teorica: 
+
+**Ecuación teorica:**
+$$\hat{Y}=e^{\beta_0+\beta_1t+\beta_2t^2+\beta_3t^3+\sum_{j=1}^{k} [ \alpha_j sin(2\pi F_jt) + \gamma_j cos(2 \pi F_j t)] }+E_t \\ E_t \sim idd N(0,\sigma^2) $$
+
+```{r}
+#Para el Ajuste
+m <- 12
+n <- length(serie) - m
+
+t <- 1:n
+t2 <- t^2
+t3 <- t^3
+
+yt <- ts(serie[t], freq = m, start = c(2013, 1)) # Escala normal
+
+#Funciones trigonometricas en las frecuencias j/12, j=2,3,4,5
+sen2 <- sin(pi * t / 3)
+cos2 <- cos(pi * t / 3)
+sen3 <- sin(pi * t / 2)
+cos3 <- cos(pi * t / 2)
+sen4 <- sin(2 * pi * t / 3)
+cos4 <- cos(2 * pi * t / 3)
+sen5 <- sin(5 * pi * t / 6)
+cos5 <- cos(5 * pi * t / 6)
+
+#Matriz de diseño
+x <- data.frame(t, t2, t3, sen2, cos2, sen3, cos3, sen4, cos4, sen5, cos5)
+head(x)
+```
+
+* ajuste nuevamente este modelo y reporte los resultados de ajuste (solo la tabla de parametros estimados, medidas de ajuste, grafico del ajuste)
+```{r}
+#Ajuste modelo exponencial cubico estacional con trigonometricas
+modelo1 <- lm(yt ~ ., data = x)
+summary(modelo1)
+```
+
+* y pronosticos (solo la tabla con las medidas de cobertura, amplitud media de los I.P, MAE, MAPE y RMSE)
+```{r}
+#Para los pronosticos
+# Variables en los pronósticos de la validación cruzada
+#definiendo valor de t para las m observaciones a pronosticar
+t_pronostico <- c((n + 1):(n + m))
+t2_pronostico <- t_pronostico^2
+t3_pronostico <- t_pronostico^3
+
+
+yt_pronostico <- ts(serie_log[t_pronostico], freq = m, start = c(2013, 1))
+
+#Funciones trigonometricas en los periodos de pronostico
+sen1_pronostico <- sin(pi * t_pronostico / 6)
+cos1_pronostico <- cos(pi * t_pronostico / 6)
+sen2_pronostico <- sin(pi * t_pronostico / 3)
+cos2_pronostico <- cos(pi * t_pronostico / 3)
+sen3_pronostico <- sin(pi * t_pronostico / 2)
+cos3_pronostico <- cos(pi * t_pronostico / 2)
+sen4_pronostico <- sin(2 * pi * t_pronostico / 3)
+cos4_pronostico <- cos(2 * pi * t_pronostico / 3)
+sen5_pronostico <- sin(5 * pi * t_pronostico / 6)
+cos5_pronostico <- cos(5 * pi * t_pronostico / 6)
+cos6_pronostico <- cos(pi * t_pronostico)
+
+#Matriz de diseño en los pronosticos
+x_pronosticos <- data.frame(
+    t = t_pronostico, # nolint: indentation_linter.
+    t2 = t2_pronostico,
+    t3 = t3_pronostico,
+    sen2 = sen2_pronostico,
+    cos2 = cos2_pronostico,
+    sen3 = sen3_pronostico,
+    cos3 = cos3_pronostico,
+    sen4 = sen4_pronostico,
+    cos4 = cos4_pronostico,
+    sen5 = sen5_pronostico,
+    cos5 = cos5_pronostico)
+
+head(x_pronosticos)
+```
+
+# Punto 3  Evaluacion del supuesto de ruido blanco e identificacion de procesos estocasticos sobre los errores estructurales del modelo global:
