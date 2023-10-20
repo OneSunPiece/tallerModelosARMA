@@ -13,14 +13,14 @@ knitr::include_graphics(pngfile)
 
 ## Transformaciones de las series de tiempo
 ```{r}
-logTtNoTendency=diff(log(serie))
+logt_no_tendency <- diff(log(serie))
 
 layout(cbind(c(1,1),c(2,2)))
 
 # With tendency
-plot(log(serie),ylab="")
+plot(log(serie), ylab = "")
   title("With tendency")
 # No tendency
-plot(logTtNoTendency,ylab="")
-  title("No tendency")
+plot(logt_no_tendency, ylab = "")
+title("No tendency")
 ```

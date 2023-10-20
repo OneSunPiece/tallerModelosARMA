@@ -13,6 +13,7 @@ editor_options:
 ## Librerias
 
 ### Instalarlas
+
 ```{r}
 # Visuals
 install.packages("ggplot2")
@@ -38,37 +39,41 @@ library(TSA)
 # forecast
 library(forecast)
 # dplyr
-library(dplyr)
+#library(dplyr)
 ```
 
 ### Funciones de usuario para el trabajo
+
 ```{r}
-source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-Descomp.Loess.R") # nolint: line_length_linter
-source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-Filtro.lineal.R") # nolint: line_length_linter
-source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-Loess.Optimo.R") # nolint: line_length_linter
-source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-SelectModel.R") # nolint: line_length_linter
-source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-SuavizamientoEstacional.R") # nolint: line_length_linter
-source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-estimar.recursiva.R") # nolint: line_length_linter
-source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-regexpo.ErrorARMA.R") # nolint: line_length_linter
-source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-regexponencial.R") # nolint: line_length_linter
-source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funciones-BP.LB.test-pruebaDW1.R") # nolint: line_length_linter
-source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funciones-Criterios.Informacion-Calidad.Intervalos.R") # nolint: line_length_linter
+source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-Descomp.Loess.R")
+source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-Filtro.lineal.R")
+source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-Loess.Optimo.R")
+source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-SelectModel.R")
+source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-SuavizamientoEstacional.R")
+source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-estimar.recursiva.R")
+source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-regexpo.ErrorARMA.R")
+source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-regexponencial.R")
+source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funciones-BP.LB.test-pruebaDW1.R")
+source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funciones-Criterios.Informacion-Calidad.Intervalos.R")
 ```
 
 ### Borrar datos almacenados en memoria
+
 ```{r}
-rm(list = ls(all = TRUE))
+rm(list=ls(all=TRUE))
 ```
 
 ### Cargar datos
+
 ```{r}
-data_dir <- "./data/anex-EMC-SeriesIndiceEmpalmados-vtas nominales lineas mercancia-may2023.csv" # nolint: line_length_linter
+data_dir <- "./data/anex-EMC-SeriesIndiceEmpalmados-vtas nominales lineas mercancia-may2023.csv"
 data <- read.table(data_dir, header = TRUE, sep = ";",
-    skip = 10, dec = ",", colClasses = c(rep("NULL", 14), "numeric", rep("NULL", 7))) # nolint: line_length_linter, indentation_linter.
+    skip = 10, dec = ",", colClasses = c(rep("NULL", 14), "numeric", rep("NULL", 7)))
 data
 ```
 
 ### Componer la serie en su estructura de datos predeterminada
+
 ```{r}
 serie <- ts(data, freq = 12, start = c(2013, 1))
 serie_log <- ts(log(data), freq = 12, start = c(2013, 1))
@@ -77,7 +82,9 @@ serie_log <- ts(log(data), freq = 12, start = c(2013, 1))
 # Punto 2 Análisis descriptivo de la serie, modelo global asignado y sus resultados
 
 ## Punto A
-* Presente y analice en forma breve la gráfica de la serie (y su logaritmo natural si la serie es multiplicativa)
+
+-   Presente y analice en forma breve la gráfica de la serie (y su
+    logaritmo natural si la serie es multiplicativa)
 
 ```{r}
 # Graficamos
@@ -89,7 +96,9 @@ plot(serie_log, ylab = "PIB Nominal")
 title("Escala Lognormal")
 ```
 
-* indicando los patrones observables de tendencia, estacionalidad, varianza, ciclos.
+-   indicando los patrones observables de tendencia, estacionalidad,
+    varianza, ciclos.
+
 ```{r}
 # Graficamos diferentes componentes de la serie para su análisis
 descom_serie_log <- decompose(serie_log, type = "additive")
@@ -105,7 +114,10 @@ abline(h = mean(x_no_trend))
 periodogram(x_no_trend, main = "Periodograma")
 ```
 
-* Grafique y analice además la ACF estimada con la serie (para el caso multiplicativo sólo presente y analice la ACF del logaritmo natural) m = 36
+-   Grafique y analice además la ACF estimada con la serie (para el caso
+    multiplicativo sólo presente y analice la ACF del logaritmo natural)
+    m = 36
+
 ```{r}
 acf(as.numeric(serie), lag.max = 36, ci.type = "ma",
     col = 4, ci.col = 2, main = "ACF de la serie")
@@ -115,10 +127,14 @@ acf(as.numeric(log(serie)), lag.max = 36, ci.type = "ma",
 
 ## Punto B
 
-* Para el modelo de regresión global señalado en la Tabla 1 (En este caso **exponencial polinomial multiplicativa estacional**), reporte la ecuacion teorica con sus supuestos y con la estrategia de validacion cruzada usando la misma longitud de ajuste del trabajo anterior (n = 113)
-ecuacion teorica: 
+-   Para el modelo de regresión global señalado en la Tabla 1 (En este
+    caso **exponencial polinomial multiplicativa estacional**), reporte
+    la ecuacion teorica con sus supuestos y con la estrategia de
+    validacion cruzada usando la misma longitud de ajuste del trabajo
+    anterior (n = 113) ecuacion teorica:
 
 **Ecuación teorica:**
+
 $$\hat{Y}=e^{\beta_0+\beta_1t+\beta_2t^2+\beta_3t^3+\sum_{j=1}^{k} [ \alpha_j sin(2\pi F_jt) + \gamma_j cos(2 \pi F_j t)] }+E_t \\ E_t \sim idd N(0,\sigma^2) $$
 
 ```{r}
@@ -147,14 +163,18 @@ x <- data.frame(t, t2, t3, sen2, cos2, sen3, cos3, sen4, cos4, sen5, cos5)
 head(x)
 ```
 
-* ajuste nuevamente este modelo y reporte los resultados de ajuste (solo la tabla de parametros estimados, medidas de ajuste, grafico del ajuste)
+-   ajuste nuevamente este modelo y reporte los resultados de ajuste
+    (solo la tabla de parametros estimados, medidas de ajuste, grafico
+    del ajuste)
+
 ```{r}
 #Ajuste modelo exponencial cubico estacional con trigonometricas
-modelo1 <- lm(yt ~ ., data = x)
-summary(modelo1)
+modelo=lm(yt~.,data=x)
+summary(modelo)
 ```
 
-* y pronosticos (solo la tabla con las medidas de cobertura, amplitud media de los I.P, MAE, MAPE y RMSE)
+-   y pronosticos (solo la tabla con las medidas de cobertura, amplitud
+    media de los I.P, MAE, MAPE y RMSE)
 > TODO: Organizar la sección de pronostico
 ```{r}
 #Para los pronosticos
@@ -211,13 +231,32 @@ summary(modelo_exponencial)
 ```
 
 ```{r}
-# Calculo valores ajustados del modelo 2
+# Calculo valores ajustados del modelo exponencial
 yt_hat_modelo_exponencial <- ts(fitted(modelo_exponencial),freq=m,start=start(yt))
 # Grafico de los valores ajustados
 plot(serie,ylab="PIB Nominal de productos de aseo",main="Modelo Exponencial Multiplicativo con estacionalidad trigonometrica")
 lines(yt_hat_modelo_exponencial, col = 2, lwd = 2)
 legend("topleft", legend = c("Original", "Modelo Exponencial2"), lty = 1, col = c(1, 2))
 ```
+* Tablas de pronostico
+```{r}
+#Calculo de los criterios AIC y BIC en el modelo
+nparmod2=length(coef(modelo_exponencial)[coef(modelo_exponencial)!=0])
+Criterios2=exp.crit.inf.resid(residuales=residuals(modelo_exponencial),n.par=nparmod2)
 
+#Pronosticos del modelo exponencial en la escala original, solo son de tipo puntual por ser modelo no lineal
+pronostico_exponencial <- predict(modelo_exponencial, newdata = x_pronosticos, interval = "prediction", level = 0.95)
+yt_pronostico_exponencial <- ts(pronostico_exponencial, freq=m, start = start(yt_pronostico))
+#yt_pronostico_exponencial
+#precision pronosticos puntuales modelo exponencial
+accuracy(yt_pronostico_exponencial,yt_pronostico)
 
-# Punto 3  Evaluacion del supuesto de ruido blanco e identificacion de procesos estocasticos sobre los errores estructurales del modelo global:
+modelo1 <- Descomp.Loess(serie.ajuste=yt,h=m,tipo.descomp="multiplicative",grado=1,criterio="aicc")
+
+#plot(modelo1$St,ylab=expression(hat(S)[t]),lwd=2)
+
+#Serie de pronósticos puntuales 
+#modelo_exponencial$tablapron
+```
+
+# Punto 3 Evaluacion del supuesto de ruido blanco e identificacion de procesos estocasticos sobre los errores estructurales del modelo global:
