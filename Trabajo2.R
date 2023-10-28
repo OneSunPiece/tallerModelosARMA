@@ -9,7 +9,7 @@ library(forecast)
 # dplyr
 library(dplyr)
 
-rm(list = ls(all = TRUE))
+#rm(list = ls(all = TRUE))
 
 source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-Descomp.Loess.R")
 source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funcion-Filtro.lineal.R")
@@ -23,7 +23,7 @@ source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Est
 source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Estadistica-III/main/Funciones-Criterios.Informacion-Calidad.Intervalos.R")
 
 data_dir <- "./data/anex-EMC-SeriesIndiceEmpalmados-vtas nominales lineas mercancia-may2023.csv" 
-data <- read.table(data_dir, header = TRUE, sep = ";",
+data <- read.table(file.choose(), header = TRUE, sep = ";",
     skip = 10, dec = ",", colClasses = c(rep("NULL", 14), "numeric", rep("NULL", 7)))
 
 serie <- ts(data, freq = 12, start = c(2013, 1))
@@ -34,6 +34,7 @@ serie_log <- ts(log(data), freq = 12, start = c(2013, 1))
 par(mfrow = c(1, 2))
 plot(serie, ylab = "PIB Nominal", main = "Escala Normal")
 plot(serie_log, ylab = "PIB Nominal", main = "Escala Lognormal")
+
 
 # Punto 2 A
 # Graficamos diferentes componentes de la serie para su análisis
