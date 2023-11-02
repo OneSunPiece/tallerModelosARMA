@@ -1,0 +1,29 @@
+[33mcommit 3962dbe4b44cc982e2a27a9e1c75303ab7a24a54[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m)[m
+Author: Sebastian <68757620+codeinpieces@users.noreply.github.com>
+Date:   Thu Nov 2 15:56:16 2023 -0500
+
+    Refactorazed code
+
+[33mcommit 34d0a23a76d73d575f33d4e441d4f0f48714b43a[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: Sebastian <68757620+codeinpieces@users.noreply.github.com>
+Date:   Sat Oct 28 10:26:20 2023 -0500
+
+    Add: some code for point 3 and 4
+
+[33mcommit 3f1d9ebf679b28b9ea3b67aacd106ba68f08a276[m
+Author: Sebastian <68757620+codeinpieces@users.noreply.github.com>
+Date:   Thu Oct 19 20:29:52 2023 -0500
+
+    Add forecasts table and the fitted model, also trabajo2.rmd
+
+[33mcommit be18d1b90e9c698fa64fe963be919bcae155b647[m
+Author: Sebastian <68757620+codeinpieces@users.noreply.github.com>
+Date:   Thu Oct 19 18:06:48 2023 -0500
+
+    Add variables and design matrix for time series forecasting
+
+[33mcommit eb203c7b4fd29ffc3d32c3f8033fdc71b2189851[m
+Author: Sebastián Arango U <123278248+OneSunPiece@users.noreply.github.com>
+Date:   Thu Oct 19 10:39:02 2023 -0500
+
+    Initial commit
