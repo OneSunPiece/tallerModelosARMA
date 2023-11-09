@@ -31,22 +31,27 @@ install.packages("forecast")
 install.packages("dplyr")
 # lmtest
 install.packages("lmtest")
+# Metrics
+install.packages("Metrics")
 ```
 
-### LLamarlas
+### LLamar Librerias
 
 ```{r}
 # Visuals
-library(ggplot2)
+library("ggplot2")
 # Stats
-library(stats)
+library("stats")
 # Periodograma
-library(TSA)
+library("TSA")
 # forecast
-library(forecast)
+library("forecast")
 #lmtest
 library("lmtest")
-
+#Metrics
+library("Metrics")
+#fANCOVA
+library("fANCOVA")
 # dplyr
 #library(dplyr)
 ```
@@ -67,7 +72,6 @@ source("https://raw.githubusercontent.com/NelfiGonzalez/Funciones-de-Usuario-Est
 ```
 
 ### Cargar datos
-
 ```{r}
 data_dir <- "./data/anex-EMC-SeriesIndiceEmpalmados-vtas nominales lineas mercancia-may2023.csv"
 data <- read.table(data_dir, header = TRUE, sep = ";",
@@ -76,7 +80,6 @@ data_log <- log(data)
 ```
 
 ### Componer la serie en su estructura de datos predeterminada
-
 ```{r}
 serie <- ts(data, freq = 12, start = c(2013, 1))
 serie_log <- ts(data_log, freq = 12, start = c(2013, 1))
@@ -107,6 +110,7 @@ title("Escala Lognormal")
 descom_serie_log <- decompose(serie_log, type = "additive")
 # 1. Graficando la tendencia
 plot(descom_serie_log$trend)
+rect(-5, -5, 120, 120, col="blue")
 # 2. Graficando la varianza
 x_no_trend <- diff(serie_log)
 plot(x_no_trend, ylab = expression(log(Y[t]) - log(Y[t - 1])))
@@ -122,8 +126,8 @@ periodogram(x_no_trend, main = "Periodograma")
     m = 36
 
 ```{r}
-acf(as.numeric(serie), lag.max = 36, ci.type = "ma",
-    col = 4, ci.col = 2, main = "ACF de la serie")
+#acf(as.numeric(serie), lag.max = 36, ci.type = "ma",
+#    col = 4, ci.col = 2, main = "ACF de la serie")
 acf(as.numeric(serie_log), lag.max = 36, ci.type = "ma",
     col = 4, ci.col = 2, main = "ACF de la serie logaritmica")
 ```
@@ -138,7 +142,7 @@ acf(as.numeric(serie_log), lag.max = 36, ci.type = "ma",
 
 **Ecuación teorica:**
 
-$$Y = e^{\beta_0+\beta_1t+\beta_2t^2+\beta_3t^3+\sum_{j=1}^{k} [ \alpha_j sin(2\pi F_jt) + \gamma_j cos(2 \pi F_j t)] }+E_t \\ E_t \sim idd N(0,\sigma^2) $$
+$$Y = e^{\beta_0+\beta_1t+\beta_2t^2+\beta_3t^3+\sum_{j=1}^{k} [ \alpha_j sin(2\pi F_jt) + \gamma_j cos(2 \pi F_j t)] }+E_t \\ E_t \sim idd N(0,\sigma^2)$$
 
 ```{r}
 #Para el Ajuste
@@ -178,8 +182,8 @@ head(x)
 parameter_names <- c(paste0("beta", 0:3), "alfa2", "gamma2",
     "alfa3", "gamma3", "alfa4",
     "gamma4", "alfa5", "gamma5")
-modelo_global <- regexponencial(respuesta = yt, # DISCUSS: yt es escala normal
-    data = x, # DISCUSS: x son los datos 1:113
+modelo_global <- regexponencial(respuesta = yt,
+    data = x, 
     names.param = parameter_names)
 
 summary(modelo_global)
@@ -247,7 +251,7 @@ criterios_mod_global <- exp.crit.inf.resid(
   residuales=residuals(modelo_global),
   n.par=num_param_mod_global
   )
-
+criterios_mod_global
 #Pronosticos del modelo exponencial en la escala original, solo son de tipo puntual por ser modelo no lineal
 pron_mod_global <- predict(modelo_global,
                            newdata = x_pronosticos,
@@ -261,7 +265,7 @@ yt_pron_mod_global <- ts(pron_mod_global,
                                 )
 #yt_pronostico_exponencial
 #precision pronosticos puntuales modelo exponencial
-accuracy(pron_mod_global,yt_pronostico)
+#accuracy(pron_mod_global,yt_pronostico)
 
 predictions_mod_global <- Descomp.Loess(serie.ajuste=yt,
                         h=m,tipo.descomp="multiplicative",
@@ -270,48 +274,95 @@ predictions_mod_global <- Descomp.Loess(serie.ajuste=yt,
                         )
 predictions_mod_global$tablapron
 predictions_mod_global$deltasi
-#plot(modelo1$St,ylab=expression(hat(S)[t]),lwd=2)
-
 ```
 
 # Punto 3 Evaluacion del supuesto de ruido blanco e identificacion de procesos estocasticos sobre los errores estructurales del modelo global:
 
+## 3.A Modelo Global
 ```{r}
 
 Residuals_mod_global <- residuals(modelo_global)
 limite_inferior <- -2*summary(modelo_global)$sigma
 limite_superior <- 2*summary(modelo_global)$sigma
 
+actual_pron <- serie[114:124] # Important!
+complete_pron <- serie[114:125] # Important!
+
+plot.ts(Residuals_mod_global)
+abline(h = c(limite_inferior, limite_superior), lty = 2, col= "red")
+abline(h = mean(as.numeric(Residuals_mod_global)), lty = 2, col= "blue")
+
 plot.ts(fitted(modelo_global,Residuals_mod_global))
-abline(h=c(limite_inferior,limite_superior),lty=2,col="red")
 
-acf(as.numeric(Residuals_mod_global),ci.type="ma",main="ACF modelo exponencial",
-    lag.max = 36, lwd = 2)
+acf(as.numeric(Residuals_mod_global),
+    ci.type="ma",
+    main="ACF modelo exponencial",
+    lag.max = 36,
+    lwd = 2)
 
+pacf(as.numeric(Residuals_mod_global),
+     main = "PACF",
+     lag.max = 36,
+     ci.col = 2,
+     lwd = 2)
 
-BP.LB.test(Residuals_mod_global,maxlag = 36)
+#BP.LB.test(Residuals_mod_global,maxlag = 36)
+BP_global <- BP.LB.test(Residuals_mod_global,maxlag = 36, type = "Ljung")
+#BP_global <- c(BP_global$X.squared, BP_global$p.value)
+BP_global
 ```
-# No sé que punto es lo siguiente
+
+## 3.B seleccion modelos
 
 ```{r}
-# Identificando el orden p de un AR(p)
-SelectModel(Residuals_mod_global, lag.max = 36, Criterion = "AIC", ARModel = "AR")
-SelectModel(Residuals_mod_global, lag.max = 36, Criterion = "BIC", ARModel = "AR")
+#acf y pafc
+acf(Residuals_mod_global,
+    main = "ACF de la serie global logaritmica",
+    lag.max = 36,
+    ci.type = "ma",
+    col = 4,
+    ci.col = 2
+    )
+
+pacf(Residuals_mod_global,
+     main = "PACF de la serie global logaritmica",
+     lag.max = 36,
+     ci.col = 2
+     )
+# Identificando el orden p de un ARMA(p,q)
+```
+$$
+\begin{align*}
+
+E_t = \sum_{i=1}^{2} \phi_i  E_{t-i} + \sum_{j=1}^{2} \theta_j  a_{t-j}
+
+\end{align*}
+$$
+```{r}
+#autoArima
+Et <- ts(Residuals_mod_global,freq=12,start=start(yt))
+print("1------")
 auto.arima(Residuals_mod_global, ic = "aic")
 auto.arima(Residuals_mod_global, ic = "bic")
-# La siguiente corrida de auto.arima puede arrojar un modelo ARMA estacional
-Et <- ts(Residuals_mod_global,freq=12,start=start(yt))
+print("2------")
 auto.arima(Et, ic = "aic")
 auto.arima(Et, ic = "bic")
-
 ```
 
 ```{r}
+#EACFs
 eacf(Residuals_mod_global, ar.max = 24, ma.max = 24)
-#win.graph(height = 5, width = 9)
 ```
 
-
+```{r}
+#SelectModel
+SelectModel(Residuals_mod_global, lag.max = 36, Criterion = "AIC", ARModel = "AR")
+SelectModel(Residuals_mod_global, lag.max = 36, Criterion = "BIC", ARModel = "AR")
+```
+$$
+H_0 : \phi_{kk} = 0 \; ; \; H_1: \phi_{kk} \neq 0\\
+\forall k \in \{1,2,3...36\}
+$$
 ```{r}
 plot(armasubsets(Residuals_mod_global,
                  nar = 12,
@@ -322,50 +373,88 @@ plot(armasubsets(Residuals_mod_global,
      )
 ```
 # Punto 4
+## Ecuaciones teoricas de los modelos a ajustar
+
+### AR(8)
+$$
+E_t = \sum_{i=1}^{8} \phi_i  E_{t-i} + a_t
+\\
+\hat{E_t} = 
+0.1471063 \cdot \hat{E_{t-1}} + 0.08448087 \cdot \hat{E_{t-2}} + 0.06503141 \cdot \hat{E_{t-3}}\\
+- 0.04662401 \cdot \hat{E_{t-4}} - 0.2027162 \cdot \hat{E_{t-5}} + 0.02077606 \cdot \hat{E_{t-6}}\\
+- 0.05957328 \cdot \hat{E_{t-7}} + 0.2201255 \cdot \hat{E_{t-8}}
+\\
+$$
+### ARMA(5,0,5)
+$$
+E_t = \sum_{i=1}^{5} \phi_i  E_{t-i} + a_t + \sum_{j=1}^{5} \theta_j  a_{t-j}
+$$
+### ARMA(5,0)(0,1)[12]
+$$
+\begin{align*}
+
+E_t &= \sum_{j=1}^{5}[\phi_jE_{t-j}]+a_t+\Theta_1 a_{t-12}\; ; \;
+\bf{a_t \; un \; R.B. \; \sim N(0,\sigma^2_a)}
+
+\end{align*}
+$$
+### ARMA(5,0,8)
+$$
+\begin{align*}
+
+E_t = \sum_{i=1}^{5} \phi_i  E_{t-i} + \sum_{j=1}^{8} \theta_j  a_{t-j}
+
+\end{align*}
+$$
+## 4.1 modelo A
 
 ```{r}
-# Modelo AR(8)
+# Modelo A AR(8)
 modeloA <- regexpo.ErrorARMA(respuesta = yt,
                              names.param = parameter_names,
                              data=x,newdata = x_pronosticos,
                              order = c(8,0,0),
                              method = "ML")
-modeloA
-```
-
-```{r}
-coeficientesA <- coef(modeloA)
-Yt_Hat_A <- fitted(modeloA)
-nParModa <- modeloA$p
-nParModa
-CriteriosA <- exp.crit.inf.resid(residuales = residuals(modeloA),n.par = nParModa)
-CriteriosA
-```
-
-```{r}
-Yt_Pron_A <- modeloA$forecast
-Yt_Pron_A
-
-#accuracy(Yt_Pron_A)# No sé hace debido a que los parametros de regresion no son lineales (CREO)
-``` 
-
-```{r}
+# 1. Residuales del modelo A
 resid_ajuste_A <- residuals(modeloA)
-# Grafico residuales del ajuste
+# 2. Coeficientes del modelo A
+coef_A <- coef(modeloA)
+# 3. Ajuste del modelo B
+Yt_hat_A <- fitted(modeloA)
+# 4. Número de parametros
+num_params_A <- modeloA$p
+# 5. Criterios AIC, BIC
+CriteriosA <- exp.crit.inf.resid(residuales = resid_ajuste_A,n.par = num_params_A)
+# 6. Pronosticos
+pron_A <- modeloA$forecast
+
 #layout(rbind(c(1,2,3),c(4,5,6)))
+
+# 7.  Grafico residuales del ajuste - serie
 plot(resid_ajuste_A)
 abline(h = c(limite_inferior, limite_superior), lty = 2)
+abline(h = mean(resid_ajuste_A), lty = 2, col= "red")
+# 8.  Grafico residuales del ajuste - puntos
 plot(as.numeric(fitted(modeloA)),resid_ajuste_A)
 abline(h = c(limite_inferior, limite_superior), lty = 2)
+abline(h = mean(resid_ajuste_A), lty = 2, col= "red")
+# 9.  Grafico ACFs, PACFs de residuales modelo A
 acf(as.numeric(resid_ajuste_A), ci.type = "ma", lag.max = 36, ci.col = 2, main = "ACF")
 pacf(as.numeric(resid_ajuste_A), main = "PACF", lag.max = 36, ci.col = 2)
+# 10.  Grafica de normalidad
 qqnorm(resid_ajuste_A,main = "Grafico Normal Residuales modelo A")
 qqline(resid_ajuste_A,col = 2, lwd = 2)
+shapiro_A <- c(shapiro.test(resid_ajuste_A)$statistic,
+               shapiro.test(resid_ajuste_A)$p.value
+               )
+# 11.  Ljung-Box
+BP_A <- BP.LB.test(resid_ajuste_A,maxlag = 36, type = "Ljung")
+BP_A_square <- BP_A$X.squared
+BP_A_p <- BP_A$p.value
 
-BP.LB.test(resid_ajuste_A,maxlag = 36, type = "Ljung")
-shapiro.test(resid_ajuste_A)
 ```
 
+## 4.2 modelo B
 ```{r}
 # Modelo B - ARMA(5,0,5)
 modeloB <- regexpo.ErrorARMA(respuesta = yt,
@@ -373,41 +462,46 @@ modeloB <- regexpo.ErrorARMA(respuesta = yt,
                              data = x,
                              newdata = x_pronosticos,
                              order = c(5,0,5), method = "ML")
-#
+# 1. Residuales del modelo B
 resid_ajuste_B <- residuals(modeloB)
-#
+# 2. Coeficientes del modelo B
 coef_B <- coef(modeloB)
-coef_B
-#
+# 3. Ajuste del modelo B
 Yt_hat_B <- fitted(modeloB)
-Yt_hat_B
-#
+# 4. Número de parametros
 num_params_B <- modeloB$p
-num_params_B
-# 
+# 5. Criterios AIC, BIC
 CriteriosB <- exp.crit.inf.resid(residuales = resid_ajuste_B,n.par = num_params_B)
-CriteriosB
-#
-Yt_pron_B <- modeloB$forecast
-Yt_pron_B
-#accuracy(Yt_pron_B,yt_pronostico) # No sé hace debido a que los parametros de regresion no son lineales (CREO)
+# 6. Pronosticos
+pron_B <- modeloB$forecast
 
-# 
+#layout(rbind(c(1,2,3),c(4,5,6)))
 
-layout(rbind(c(1,2,3),c(4,5,6)))
+# 7.  Grafico residuales del ajuste - serie
 plot(resid_ajuste_B)
 abline(h = c(limite_inferior, limite_superior), lty = 2)
+abline(h = mean(resid_ajuste_B), lty = 2, col= "red")
+# 8.  Grafico residuales del ajuste - puntos
 plot(as.numeric(fitted(modeloB)),resid_ajuste_B)
 abline(h = c(limite_inferior, limite_superior), lty = 2)
+abline(h = mean(resid_ajuste_B), lty = 2, col= "red")
+# 9.  Grafico ACFs, PACFs de residuales modelo B
 acf(as.numeric(resid_ajuste_B), ci.type = "ma", lag.max = 36, ci.col = 2, main = "ACF")
 pacf(as.numeric(resid_ajuste_B), main = "PACF", lag.max = 36, ci.col = 2)
-qqnorm(resid_ajuste_B,main = "Grafico Normal Residuales modelo A")
+# 10.  Grafica de normalidad
+qqnorm(resid_ajuste_B,main = "Grafico Normal Residuales modelo B")
 qqline(resid_ajuste_B,col = 2, lwd = 2)
+shapiro_B <- c(shapiro.test(resid_ajuste_B)$statistic,
+               shapiro.test(resid_ajuste_B)$p.value
+               )
+# 11.  Ljung-Box
+BP_B <- BP.LB.test(resid_ajuste_B,maxlag = 36, type = "Ljung")
+BP_B_square <- BP_B$X.squared
+BP_B_p <- BP_B$p.value
 
-BP.LB.test(resid_ajuste_B,maxlag = 36, type = "Ljung")
-shapiro.test(resid_ajuste_B)
 ```
 
+## 4.3 modelo C
 ```{r}
 # Modelo C - ARMA(5,0)(0,1)[12]
 modeloC <- regexpo.ErrorARMA(respuesta = yt,
@@ -417,43 +511,45 @@ modeloC <- regexpo.ErrorARMA(respuesta = yt,
                              order = c(5,0,0),
                              seasonal = list(order=c(0,0,1)),
                              method = "ML")
-#
+# 1. Residuales del modelo C
 resid_ajuste_C <- residuals(modeloC)
-resid_ajuste_C
-#
+# 2. Coeficientes del modelo C
 coef_C <- coef(modeloC)
-coef_C
-#
+# 3. Ajuste del modelo C
 Yt_hat_C <- fitted(modeloC)
-Yt_hat_C
-#
+# 4. Número de parametros
 num_params_C <- modeloC$p
-num_params_C
-# 
+# 5. Criterios AIC, BIC
 CriteriosC <- exp.crit.inf.resid(residuales = resid_ajuste_C,n.par = num_params_C)
-CriteriosC
-#
-Yt_pron_C <- modeloC$forecast
-Yt_pron_C
-#accuracy(Yt_Pron_B) # No sé hace debido a que los parametros de regresion no son lineales (CREO)
+# 6. Pronosticos
+pron_C <- modeloC$forecast
 
-# 
-layout(rbind(c(1,2,3),c(4,5,6)))
+#layout(rbind(c(1,2,3),c(4,5,6)))
+
+# 7.  Grafico residuales del ajuste - serie
 plot(resid_ajuste_C)
 abline(h = c(limite_inferior, limite_superior), lty = 2)
+abline(h = mean(resid_ajuste_C), lty = 2, col= "red")
+# 8.  Grafico residuales del ajuste - puntos
 plot(as.numeric(fitted(modeloC)),resid_ajuste_C)
 abline(h = c(limite_inferior, limite_superior), lty = 2)
+abline(h = mean(resid_ajuste_C), lty = 2, col= "red")
+# 9.  Grafico ACFs, PACFs de residuales modelo C
 acf(as.numeric(resid_ajuste_C), ci.type = "ma", lag.max = 36, ci.col = 2, main = "ACF")
 pacf(as.numeric(resid_ajuste_C), main = "PACF", lag.max = 36, ci.col = 2)
-qqnorm(resid_ajuste_C,main = "Grafico Normal Residuales modelo A")
+# 10.  Grafica de normalidad
+qqnorm(resid_ajuste_C,main = "Grafico Normal Residuales modelo C")
 qqline(resid_ajuste_C,col = 2, lwd = 2)
-
-BP.LB.test(resid_ajuste_C,maxlag = 36, type = "Ljung")
-shapiro.test(resid_ajuste_C)
-
-
+shapiro_C <- c(shapiro.test(resid_ajuste_C)$statistic,
+               shapiro.test(resid_ajuste_C)$p.value
+               )
+# 11.  Ljung-Box
+BP_C <- BP.LB.test(resid_ajuste_C,maxlag = 36, type = "Ljung")
+BP_C_square <- BP_C$X.squared
+BP_C_p <- BP_C$p.value
 ```
 
+## 4.4 modelo D
 ```{r}
 # Modelo D - 12x12, renglon 4
 modeloD <- regexpo.ErrorARMA(respuesta = yt,
@@ -463,39 +559,235 @@ modeloD <- regexpo.ErrorARMA(respuesta = yt,
                              order = c(5,0,8),
                              fixed = c(0,NA,rep(0,2),NA,rep(0,6),NA,NA),
                              method = "ML")
-#
+# 1. Residuales del modelo D
 resid_ajuste_D <- residuals(modeloD)
-resid_ajuste_D
-#
+# 2. Coeficientes del modelo D
 coef_D <- coef(modeloD)
-coef_D
-#
+# 3. Ajuste del modelo D
 Yt_hat_D <- fitted(modeloD)
-Yt_hat_D
-#
+# 4. Número de parametros
 num_params_D <- modeloD$p
-num_params_D
-# 
+# 5. Criterios AIC, BIC
 CriteriosD <- exp.crit.inf.resid(residuales = resid_ajuste_D,n.par = num_params_D)
-CriteriosD
-#
-Yt_pron_D <- modeloD$forecast
-Yt_pron_D
-#accuracy(Yt_Pron_B) # No sé hace debido a que los parametros de regresion no son lineales (CREO)
+# 6. Pronosticos
+pron_D <- modeloD$forecast
 
-# 
-layout(rbind(c(1,2,3),c(4,5,6)))
+# layout(rbind(c(1,2,3),c(4,5,6)))
+
+# 7.  Grafico residuales del ajuste - serie
 plot(resid_ajuste_D)
 abline(h = c(limite_inferior, limite_superior), lty = 2)
+abline(h = mean(resid_ajuste_D), lty = 2, col= "red")
+# 8.  Grafico residuales del ajuste - puntos
 plot(as.numeric(fitted(modeloD)),resid_ajuste_D)
 abline(h = c(limite_inferior, limite_superior), lty = 2)
+abline(h = mean(resid_ajuste_D), lty = 2, col= "red")
+# 9.  Grafico ACFs, PACFs de residuales modelo D
 acf(as.numeric(resid_ajuste_D), ci.type = "ma", lag.max = 36, ci.col = 2, main = "ACF")
 pacf(as.numeric(resid_ajuste_D), main = "PACF", lag.max = 36, ci.col = 2)
-qqnorm(resid_ajuste_D,main = "Grafico Normal Residuales modelo A")
+# 10.  Grafica de normalidad
+qqnorm(resid_ajuste_D,main = "Grafico Normal Residuales modelo D")
 qqline(resid_ajuste_D,col = 2, lwd = 2)
+shapiro_D <- c(shapiro.test(resid_ajuste_D)$statistic,
+               shapiro.test(resid_ajuste_D)$p.value
+               )
+# 11.  Ljung-Box
+BP_D <- BP.LB.test(resid_ajuste_D, maxlag = 36, type = "Ljung")
+BP_D_square <- BP_D$X.squared
+BP_D_p <- BP_D$p.value
+```
 
-BP.LB.test(resid_ajuste_D,maxlag = 36, type = "Ljung")
-shapiro.test(resid_ajuste_D)
+# Tablas
+
+## Criterios
+```{r}
+# Medidas de criterios
+criterios <- data.frame(criterios_mod_global, CriteriosA, CriteriosB, CriteriosC, CriteriosD)
+criterios <- data.frame(t(criterios)) # Se cambian filas por columnas
+criterios
+```
+
+## Shapiro W
+```{r}
+# Medidas de Shapiro
+shapiros <- data.frame(shapiro_A, shapiro_B, shapiro_C, shapiro_D)
+shapiros <- data.frame(t(shapiros)) # Se cambian filas por columnas
+shapiros
+```
+
+## Medida de errores
+```{r}
+# Medidas de errores
+
+rmse_global <- rmse(actual_pron,pron_mod_global[0:11])
+rmse_A <- rmse(actual_pron,pron_A)
+rmse_B <- rmse(actual_pron,pron_B)
+rmse_C <- rmse(actual_pron,pron_C)
+rmse_D <- rmse(actual_pron,pron_D)
+RMSEs <- c(rmse_global,rmse_A, rmse_B, rmse_C, rmse_D)
+
+mae_global <- mae(actual_pron,pron_mod_global)
+mae_A <- mae(actual_pron,pron_A)
+mae_B <- mae(actual_pron,pron_B)
+mae_C <- mae(actual_pron,pron_C)
+mae_D <- mae(actual_pron,pron_D)
+MAEs <- c(mae_global, mae_A, mae_B, mae_C, mae_D)
+
+mape_global <- mape(actual_pron,pron_mod_global)*100
+mape_A <- mape(actual_pron,pron_A)*100
+mape_B <- mape(actual_pron,pron_B)*100
+mape_C <- mape(actual_pron,pron_C)*100
+mape_D <- mape(actual_pron,pron_D)*100
+MAPEs <- c(mape_global, mape_A, mape_B, mape_C, mape_D)
+
+MedidasErrores <- data.frame(RMSEs,MAEs,MAPEs)
+rownames(MedidasErrores) <- c("Global","modelo A", "modelo B", "modelo C", "modelo D")
+MedidasErrores
+```
+
+## LjungBox
+```{r}
+# Ljung
+LjungBox <- data.frame(BP_A_square, BP_A_p,
+                       BP_B_square, BP_B_p,
+                       BP_C_square, BP_C_p,
+                       BP_D_square, BP_D_p)
+
+colnames(LjungBox) <- c("modelo A","p_A",
+                        "modelo B", "p_B",
+                        "modelo C","p_C",
+                        "modelo D","p_D"
+                        )
+rownames(LjungBox) <- c(6,12,18,24,30,36)
+
+LjungBox
+```
+
+## Predicciones
+```{r}
+# Medidas de Pronosticos
+predicciones <- data.frame(pron_A, pron_B, pron_C, pron_D)
+rownames(predicciones) <- c("Jun","Jul",
+                        "Aug", "Sep",
+                        "Oct","Nov",
+                        "Dec","Jan",
+                        "Feb","Mar","Apr"
+                        )
+predicciones
+```
+
+## Pronosticos
+```{r}
+# Medidas de Pronosticos
+predicciones_ajuste <- data.frame( pron_A ,
+                                   pron_B ,
+                                   pron_C ,
+                                   pron_D 
+                                  )
+rownames(predicciones_ajuste) <- c("Jun","Jul",
+                        "Aug", "Sep",
+                        "Oct","Nov",
+                        "Dec","Jan",
+                        "Feb","Mar","Apr"
+                        )
+colnames(predicciones_ajuste) <- c("ModeloA","ModeloB",
+                        "ModeloC", "ModeloD"
+                        )
+predicciones_ajuste
+```
+
+# Punto 6
+```{r}
+# Gráfica de pronosticos
+plot.ts(yt,
+        ylab="Residuos vs. ajustados",
+        main="Residuos vs. ajustados Modelo",
+        xlim=c(2013,2023),
+        ylim=c(50,250)
+        )
+legend("topleft",legend=c("Original",
+                          "Modelo A",
+                          "Modelo B",
+                          "Modelo C",
+                          "Modelo D"),lty=1,col=c(1,2,3,4,5))
+lines(pron_A,col=1,lwd=1,lty= 3)
+lines(pron_B,col=2,lwd=1,lty= 3)
+lines(pron_C,col=3,lwd=1,lty= 3)
+lines(pron_D,col=4,lwd=1,lty= 3)
+
+predicciones
+```
+
+ARMA(5,0)(0,1)[12] 
+$$ 
+\begin{align*}
+
+E_t &= \sum_{j=1}^{5}[\phi_jE_{t-j}]+a_t+\Theta_1 a_{t-12}\; ; \;
+\bf{a_t \; un \; R.B. \; \sim N(0,\sigma^2_a)}
+
+\end{align*}
+$$
+
+# Punto 7
+
+```{r}
+#Modelo Local
+modelo_local <- Descomp.Loess(serie.ajuste=yt,
+                           h=m,
+                           tipo.descomp="multiplicative",
+                           grado=1,
+                           criterio="aicc")
+# residuales
+Residuals_mod_local <- modelo_local$residuals
+num_param_mod_local <- modelo_local$p
+# Pronosticos del modelo local
+pron_mod_local <- modelo_local$tablapron
+# Limites
+limite_inferior_local <- -2*modelo_local$sigma2
+limite_superior_local <- 2*modelo_local$sigma
+
+layout(rbind(c(1,2),c(3,4)))
+# 1. Gráfica de ajuste
+plot(serie,ylab="PIB datos",main="Modelo Local")
+lines(fitted(modelo_local),col="blue",lwd=1)
+legend("topleft",legend=c("Original","Modelo Local"),lty=1,col=c(1,"blue"))
+# 1.1 Calculo AIC y BIC 
+Criterios_local <- exp.crit.inf.resid(residuales=Residuals_mod_local,
+                                   n.par=num_param_mod_local)
+Criterios_local
+# 2. Grafico residuales
+plot.ts(Residuals_mod_local,
+        ylab="PIB datos",
+        main="Residuos Modelo Local")
+abline(h = c(limite_inferior_local, limite_superior_local), lty = 2)
+abline(h = mean(Residuals_mod_local), lty = 2, col= "red")
+
+# 3. Medidas de precision de pronosticos (MAE,MAPE, RMSE)
+
+RMSE_local <- rmse(actual_pron,pron_mod_local[0:11])
+MAPE_local <- mape(actual_pron,pron_mod_local[0:11])
+MAE_local <- mae(actual_pron,pron_mod_local[0:11])
+medidas_prec_locales <- data.frame(RMSE_local,MAPE_local,MAE_local)
+medidas_prec_locales
+# 4.  Evaluación del supuesto de ruido blanco
+acf(as.numeric(Residuals_mod_local),
+    ci.type="ma",
+    main="ACF modelo exponencial",
+    lag.max = 36,
+    lwd = 2)
+pacf(as.numeric(Residuals_mod_local),
+     main = "PACF",
+     lag.max = 36,
+     ci.col = 2,
+     lwd = 2)
 
 
+# 4. Test de normalidad
+## No se hace -> rechazo de ruido blanco
+
+
+# Precision pronosticos puntuales
+
+ 
+# -- Comparar con modelo global --
 ```
