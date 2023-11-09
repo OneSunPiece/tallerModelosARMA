@@ -52,8 +52,6 @@ library("lmtest")
 library("Metrics")
 #fANCOVA
 library("fANCOVA")
-# dplyr
-#library(dplyr)
 ```
 
 ### Funciones de usuario para el trabajo
@@ -129,7 +127,7 @@ periodogram(x_no_trend, main = "Periodograma")
 #acf(as.numeric(serie), lag.max = 36, ci.type = "ma",
 #    col = 4, ci.col = 2, main = "ACF de la serie")
 acf(as.numeric(serie_log), lag.max = 36, ci.type = "ma",
-    col = 4, ci.col = 2, main = "ACF de la serie logaritmica")
+    col = 4, ci.col = 2, main = "PACF de la serie logaritmica")
 ```
 
 ## Punto B
